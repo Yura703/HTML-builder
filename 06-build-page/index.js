@@ -9,26 +9,9 @@ async function main() {
   await rm(path, { recursive: true, force: true });
   await mkdir(path, { recursive: true });
 
-  copyDir(join(__dirname, 'assets'), join(path, 'assets')); //ошибка раз в 4 раза
+  await copyDir(join(__dirname, 'assets'), join(path, 'assets'));
 
-  mergeStyles(join(__dirname, 'styles'), join(path, 'style.css'));
-
-  let header = '';
-  await readFile(join(__dirname, 'components', 'header.html')).then((data) => {
-    header = data;
-  });
-
-  let articles = '';
-  await readFile(join(__dirname, 'components', 'articles.html')).then(
-    (data) => {
-      articles = data;
-    }
-  );
-
-  let footer = '';
-  await readFile(join(__dirname, 'components', 'footer.html')).then((data) => {
-    footer = data;
-  });
+  await mergeStyles(join(__dirname, 'styles'), join(path, 'style.css'));
 
   await open(join(path, 'index.html'), 'a');
 
@@ -36,12 +19,11 @@ async function main() {
   const rs = fs.createReadStream(join(__dirname, 'template.html'), 'utf8');
   const ts = new Transform({
     transform(chunk, enc, cb) {
-      chunk = chunk.toString().replace('{{header}}', header);
-      chunk = chunk.toString().replace('{{articles}}', articles);
-      chunk = chunk.toString().replace('{{footer}}', footer);
-
-      this.push(chunk);
-      cb();
+      getTags(chunk.toString()).then((data) => {
+        chunk = data;
+        this.push(chunk);
+        cb();
+      });
     },
   });
   pipeline(rs, ts, ws, (err) => {
@@ -49,8 +31,24 @@ async function main() {
   });
 }
 
+async function getTags(chunk) {
+  let str = chunk;
+
+  while (str.match(/{{.*}}/g)) {
+    const sample = str.match(/{{.*}}/g)[0].slice(2, -2);
+
+    await readFile(join(__dirname, 'components', `${sample}.html`)).then(
+      (data) => {
+        str = str.replace(`{{${sample}}}`, data);
+      }
+    );
+  }
+
+  return str;
+}
+
 async function readFile(path) {
-  let ss = '';
+  let str = '';
 
   const fileStream = fs.createReadStream(path);
   const rl = readline.createInterface({
@@ -59,17 +57,17 @@ async function readFile(path) {
   });
 
   for await (const line of rl) {
-    ss += line + '\n';
+    str += line + '\n';
   }
 
   rl.close();
   fileStream.close();
-  return ss;
+  return str;
 }
 
 async function mergeStyles(input, output) {
-  const pathInput = input ?? join(__dirname, 'styles');
-  const pathOutput = output ?? join(__dirname, 'project-dist', 'bundle.css');
+  const pathInput = input;
+  const pathOutput = output;
 
   const fd = await open(pathOutput, 'a');
   const ws = fs.createWriteStream(pathOutput, 'utf8');
@@ -89,8 +87,8 @@ async function mergeStyles(input, output) {
 }
 
 async function copyDir(input, output) {
-  const pathInput = input ?? join(__dirname, 'files');
-  const pathOutput = output ?? join(__dirname, 'files-copy');
+  const pathInput = input;
+  const pathOutput = output;
 
   await rm(pathOutput, { recursive: true, force: true });
   await mkdir(pathOutput, { recursive: true });
