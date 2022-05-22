@@ -16,7 +16,7 @@ async function mergeStyles(input, output) {
       break;
     } else {
       const rs = fs.createReadStream(join(pathInput, infoDir[i].name), 'utf8');
-      //rs.on('end', () => ws.write('\n'));
+      rs.on('data', () => ws.write('\n'));
       rs.pipe(ws);
     }
   }
