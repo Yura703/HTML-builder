@@ -1,25 +1,26 @@
-const { mkdir, open, rm, copyFile, readdir } = require('fs/promises');
+const { open, readdir } = require('fs/promises');
 const fs = require('fs');
-const { join } = require('path');
+const { join, extname } = require('path');
 
-async function main(input, output) {
+async function mergeStyles(input, output) {
   const pathInput = input ?? join(__dirname, 'styles');
   const pathOutput = output ?? join(__dirname, 'project-dist', 'bundle.css');
 
-  await open(pathOutput, 'a');
+  const fd = await open(pathOutput, 'a');
   const ws = fs.createWriteStream(pathOutput, 'utf8');
 
   const infoDir = await readdir(pathInput, { withFileTypes: true });
 
   for (let i = 0; i < infoDir.length; i++) {
-    if (infoDir[i].isDirectory()) {
-      await main(join(pathInput, infoDir[i].name), undefined);
+    if (extname(infoDir[i].name) !== '.css') {
+      break;
     } else {
       const rs = fs.createReadStream(join(pathInput, infoDir[i].name), 'utf8');
-      await rs.pipe(ws);
-      ws.close();
+      //rs.on('end', () => ws.write('\n'));
+      rs.pipe(ws);
     }
   }
+  fd.close();
 }
 
-main();
+mergeStyles();

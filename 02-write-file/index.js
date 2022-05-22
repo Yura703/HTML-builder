@@ -7,9 +7,9 @@ const pathFile = join(__dirname, 'text.txt');
 fs.open('text.txt', 'a', (err) => {
   if (err) throw err;
 });
-let readableStream = fs.createWriteStream(pathFile, 'utf8');
+let writeStream = fs.createWriteStream(pathFile, 'utf8');
 
-const rl = readline.createInterface({ input: stdin, output: readableStream });
+const rl = readline.createInterface({ input: stdin, output: writeStream });
 
 stdout.write(
   '\x1b[31m' + 'Enter text, click to finish "CTRL + C" or "exit"\n' + '\x1b[0m'
@@ -17,10 +17,10 @@ stdout.write(
 
 rl.on('line', (line) => {
   if (line.toLowerCase().split(' ').indexOf('exit') !== -1) {
-    readableStream.write(line.replace(/exit/gi, ''));
+    writeStream.write(line.replace(/exit/gi, ''));
     process.emit('SIGINT');
   }
-  readableStream.write(line + '\n');
+  writeStream.write(line + '\n');
 });
 
 process.on('SIGINT', () => {
