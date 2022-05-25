@@ -35,7 +35,7 @@ async function getTags(chunk) {
   let str = chunk;
 
   while (str.match(/{{.*}}/g)) {
-    const sample = str.match(/{{.*}}/g)[0].slice(2, -2);
+    const sample = str.match(/{{[^{}]*}}/g)[0].slice(2, -2);
 
     await readFile(join(__dirname, 'components', `${sample}.html`)).then(
       (data) => {
